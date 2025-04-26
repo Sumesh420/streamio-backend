@@ -1,0 +1,17 @@
+{
+  "name": "streamio-backend",
+  "version": "1.0.0",
+  "description": "a backend for video app streamio",
+  "keywords": [
+    "javascript",
+    "backend",
+    "streamio"
+  ],
+  "license": "ISC",
+  "author": "sumesh",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
