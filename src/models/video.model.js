@@ -16,40 +16,17 @@ const videoSchema=new Schema({
         type:String,
         required:true
     },
+     thumbnailPublicId:{
+        type:String,
+        required:true
+     },
     videoFile:{
         type:String,
         required:true
     },
-    category:{
+    videoFilePublicId:{
         type:String,
-        required:true,
-        enum:["music","sports","gaming","news","movies","tv shows","education","comedy","entertainment","science and technology","lifestyle"],
-        trim:true,
-        index:true
-    },
-    likes:{
-        type:[
-            {
-                type:Schema.Types.ObjectId,
-                ref:"User"
-            }
-        ]
-    },
-    dislikes:{
-        type:[
-            {
-                type:Schema.Types.ObjectId,
-                ref:"User"
-            }
-        ]
-    },
-    comments:{
-        type:[
-            {
-                type:Schema.Types.ObjectId,
-                ref:"Comment"
-            }
-        ]
+        required:true
     },
     views:{
         type:Number,
