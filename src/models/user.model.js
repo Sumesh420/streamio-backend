@@ -1,5 +1,6 @@
 import mongoose,{Schema,model} from "mongoose"
 import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
 
 const userSchema=new Schema({
     username:{
@@ -59,14 +60,14 @@ userSchema.pre("save",async function(next){
 });
 userSchema.methods.isPasswordMatch=async function(password){
     try{
-        return await bcrypt.compare(this.password,password);
+        return await bcrypt.compare(password,this.password);
     }
     catch(error){
         throw new Error("Error comparing password",error)
     }
 }
 userSchema.methods.generateAccessToken=async function(){
-    jwt.sign(
+    return jwt.sign(
         {
             _id:this._id,
             username:this.username,
@@ -79,8 +80,8 @@ userSchema.methods.generateAccessToken=async function(){
         }
     )
 }
-userSchema.methods.generateRefereshToken=function(){
-    jwt.sign(
+userSchema.methods.generateRefreshToken=async function(){
+    return jwt.sign(
         {
             _id:this._id
         },

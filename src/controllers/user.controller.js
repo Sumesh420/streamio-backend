@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiErrors.js";
 import { User } from "../models/user.model.js";
@@ -8,8 +9,11 @@ import jwt from "jsonwebtoken";
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+     if (!user) {
+      throw new ApiError(404, "User not found while generating tokens");
+    }
+    const accessToken =await user.generateAccessToken();
+    const refreshToken =await user.generateRefreshToken();
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
     return { accessToken, refreshToken };
@@ -81,17 +85,18 @@ const loginUser = asyncHandler(async (req, res) => {
   //check pASSword
   //generate refresh and access token
   //send cookie
+  console.log(req.body);
   const { username, email, password } = req.body;
   if (!username && !email) {
     throw new ApiError(400, "username or email is required");
   }
-  const user = User.findOne({
+  const user =await User.findOne({
     $or: [{ username }, { email }],
   });
   if (!user) {
     throw new ApiError(404, "User does not exist");
   }
-  const passwordValid = await user.isPasswordCorrect(password);
+  const passwordValid = await user.isPasswordMatch(password);
   if (!passwordValid) {
     throw new ApiError(401, "Invalid user credentials");
   }
@@ -105,7 +110,7 @@ const loginUser = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
   };
-  res
+  return res
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
@@ -138,7 +143,7 @@ const logoutUser = asyncHandler(async (req, res) => {
       .status(200)
       .clearCookie("accessToken", options)
       .clearCookie("refreshToken", options)
-      .json(new ApiError(200, {}, "Logged out successfully"));
+      .json(new ApiResponse(200, {}, "Logged out successfully"));
   } catch (error) {
     throw new ApiError(401, "Invalid request");
   }
@@ -185,7 +190,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const changeCurrentPasword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const user = await User.findById(req.user?._id);
-  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+  const isPasswordCorrect = await user.isPasswordMatch(oldPassword);
   if (!isPasswordCorrect) {
     throw new ApiError(400, "Invalid old Password");
   }
@@ -280,10 +285,11 @@ const getUserchannelProfile = asyncHandler(async (req, res) => {
   if (!username?.trim()) {
     throw new ApiError(400, "username is missing");
   }
+  
   const channel = await User.aggregate([
     {
       $match: {
-        username: username.lowercase(),
+        username: username.toLowerCase(),
       },
     },
     {
@@ -324,7 +330,7 @@ const getUserchannelProfile = asyncHandler(async (req, res) => {
         fullname: 1,
         username: 1,
         email: 1,
-        coverImage,
+        coverImage:1,
         avatar: 1,
         subscribersCount: 1,
         channelsSubscriberCount: 1,

@@ -127,7 +127,7 @@ const publishVideo = asyncHandler(async (req, res) => {
   }
   res
     .status(200)
-    .json(new ApiResponse(200, video, "Video published successfully"));
+    .json(new ApiResponse(200, {video,videoId:video._id}, "Video published successfully"));
 });
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
