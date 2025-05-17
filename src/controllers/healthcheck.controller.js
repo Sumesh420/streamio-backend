@@ -1,6 +1,6 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-export const healthCheck = (req, res) => {
+ const healthCheck = (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, {
             status: "OK",
@@ -9,3 +9,4 @@ export const healthCheck = (req, res) => {
         }, "Server is healthy")
     );
 };
+export {healthCheck}
