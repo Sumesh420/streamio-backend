@@ -112,7 +112,7 @@ const updateTweet = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedTweet, "tweet updated successfully"));
 });
 const deleteTweet = asyncHandler(async (req, res) => {
-  const { tweetId } = req.body;
+  const { tweetId } = req.params;
   const userId = req.user?._id;
   if (!isValidObjectId(tweetId)) {
     throw new ApiError(400, "Invalid Id format");

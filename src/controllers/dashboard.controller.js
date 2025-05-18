@@ -7,52 +7,61 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getChannelStats = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+  if (!userId) throw new ApiError(400, "Unauthorized");
+
+  // Get total subscribers for the channel (user)
+  const subscribersCount = await Subscription.countDocuments({ channel: userId });
+
+  // Aggregate video stats grouped by owner (channel)
   const statsResult = await Video.aggregate([
     {
-      $match: new mongoose.Types.ObjectId(req.user?._id),
-    },
-    {
-      $lookup: {
-        from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
-        as: "channelSubscribers",
-      },
+      $match: { owner: new mongoose.Types.ObjectId(userId) }
     },
     {
       $lookup: {
         from: "likes",
         localField: "_id",
         foreignField: "video",
-        as: "channelLikes",
-      },
+        as: "videoLikes"
+      }
+    },
+    {
+      $group: {
+        _id: "$owner",
+        totalVideos: { $sum: 1 },
+        totalViews: { $sum: "$views" },
+        totalLikes: { $sum: { $size: "$videoLikes" } }
+      }
     },
     {
       $addFields: {
-        likesCount: {
-          $size: "$channelLikes",
-        },
-        subscribersCount: {
-          $size: "$channelSubscribers",
-        },
-      },
+        subscribersCount: subscribersCount
+      }
     },
     {
       $project: {
-        title,
-        likesCount: 1,
-        views: 1,
-        subscribersCount: 1,
-      },
-    },
+        _id: 0,
+        totalVideos: 1,
+        totalViews: 1,
+        totalLikes: 1,
+        subscribersCount: 1
+      }
+    }
   ]);
-  if (!statsResult) {
-    throw new ApiError(404, "stats not exist");
+
+  if (!statsResult || statsResult.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "No stats available for this channel"));
   }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, statsResult, "Channel fetched successfully"));
+    .json(new ApiResponse(200, statsResult[0], "Channel stats fetched successfully"));
 });
+
+
 const getChannelVideos = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
   if (!userId) {

@@ -7,6 +7,7 @@ import { title } from "process";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const userId = req.user?._id;
   if (!isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid Id format");
   }

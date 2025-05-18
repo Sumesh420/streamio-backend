@@ -8,11 +8,16 @@ import { Video } from "../models/video.model.js";
 const getAllVideoComments = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const { page = 1, limit = 10 } = req.query;
+
+  // Validate videoId
   if (!isValidObjectId(videoId)) {
-    throw new ApiError(400, "Invalid Id format");
+    throw new ApiError(400, "Invalid videoId format");
   }
+
+  // Validate and parse pagination values
   const parsedPage = parseInt(page);
   const parsedLimit = parseInt(limit);
+
   if (
     isNaN(parsedPage) ||
     isNaN(parsedLimit) ||
@@ -21,7 +26,9 @@ const getAllVideoComments = asyncHandler(async (req, res) => {
   ) {
     throw new ApiError(400, "Invalid pagination format");
   }
-  const commentAggregate = await Comment.aggregate([
+
+  // Define aggregate pipeline (DO NOT await here)
+  const commentAggregate = Comment.aggregate([
     {
       $match: {
         video: new mongoose.Types.ObjectId(videoId),
@@ -44,9 +51,7 @@ const getAllVideoComments = asyncHandler(async (req, res) => {
         ],
       },
     },
-    {
-      $unwind: "$owner",
-    },
+    { $unwind: "$owner" },
     {
       $lookup: {
         from: "videos",
@@ -64,9 +69,7 @@ const getAllVideoComments = asyncHandler(async (req, res) => {
         ],
       },
     },
-    {
-      $unwind: "$video",
-    },
+    { $unwind: "$video" },
     {
       $sort: {
         createdAt: -1,
@@ -76,17 +79,16 @@ const getAllVideoComments = asyncHandler(async (req, res) => {
       $project: {
         createdAt: 1,
         content: 1,
-        owner: "$owner",
-        video: "$video",
+        owner: 1,
+        video: 1,
       },
     },
   ]);
-  if (!commentAggregate?.length) {
-    throw new ApiError(404, `No comments found for video ${videoId}`);
-  }
+
+  // Pagination options
   const options = {
-    page: parseInt(parsedPage),
-    limit: parseInt(parsedLimit),
+    page: parsedPage,
+    limit: parsedLimit,
     customLabels: {
       docs: "comments",
       totalDocs: "totalComments",
@@ -95,14 +97,21 @@ const getAllVideoComments = asyncHandler(async (req, res) => {
       meta: "paginator",
     },
   };
-  const allComments = await Comment.aggregatePaginate(
-    commentAggregate,
-    options
-  );
+
+  // Paginate the aggregate pipeline
+  const allComments = await Comment.aggregatePaginate(commentAggregate, options);
+
+  // Handle empty result
+  if (!allComments?.comments?.length) {
+    throw new ApiError(404, `No comments found for video ${videoId}`);
+  }
+
+  // Send response
   return res
     .status(200)
     .json(new ApiResponse(200, allComments, "Comments fetched successfully"));
 });
+
 const addComment = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const { content } = req.body;
@@ -130,7 +139,10 @@ const addComment = asyncHandler(async (req, res) => {
   if (!createdComment) {
     throw new ApiError(500, "Failed to create comment");
   }
-  return res.status(200, createdComment, "comment created successfully");
+  return res
+  .status(200)
+  .json(new ApiResponse(200, createdComment, "Comment created successfully"));
+
 });
 const updateComment = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
